@@ -23,9 +23,11 @@ hooks.pdf.before = async ({ page }) => {
 
     // eslint-disable-next-line no-undef
     Array.from(document.querySelectorAll("[data-pseudo-id]"))
-      .map((elem) => ({ elem, id: elem.getAttribute("data-pseudo-id") }))
-      .filter(({ id }) => id !== null)
-      .map(({ elem, id }) => ({ id, textContent: elem.textContent })),
+      .filter((elem) => elem.querySelector("[data-vivliostyle-target-counter]"))
+      .map((elem) => ({
+        id: /** @type {string} */ (elem.getAttribute("data-pseudo-id")),
+        textContent: elem.textContent,
+      })),
   );
   fs.writeFileSync(
     path.join(process.cwd(), "counters.json"),
