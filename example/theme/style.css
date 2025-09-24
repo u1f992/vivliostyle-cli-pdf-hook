@@ -1,0 +1,3 @@
+a::before {
+  content: target-counter(attr(href url), page);
+}

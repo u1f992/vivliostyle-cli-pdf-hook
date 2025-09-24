@@ -1,0 +1,15 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@vivliostyle/cli": "9.7.0",
+    "hast-util-from-html": "^2.0.3",
+    "hast-util-to-text": "^4.0.2",
+    "playwright-core": "file:..",
+    "unist-util-visit": "^5.0.0"
+  },
+  "overrides": {
+    "@vivliostyle/cli": {
+      "playwright-core": "file:.."
+    }
+  }
+}
