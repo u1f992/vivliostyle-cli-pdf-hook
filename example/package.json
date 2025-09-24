@@ -2,8 +2,7 @@
   "type": "module",
   "dependencies": {
     "@vivliostyle/cli": "9.7.0",
-    "playwright-core": "npm:@u1f992/vivliostyle-cli-pdf-hook@0.1.0",
-    "unist-util-visit": "^4.1.2"
+    "playwright-core": "npm:@u1f992/vivliostyle-cli-pdf-hook@0.1.0"
   },
   "overrides": {
     "@vivliostyle/cli": {
