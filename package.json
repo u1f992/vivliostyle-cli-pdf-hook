@@ -5,8 +5,11 @@
   "description": "A proxy package for playwright-core, designed to provide hooks for PDF output processing in the Vivliostyle CLI.",
   "main": "dist/index.js",
   "scripts": {
+    "lint": "eslint --fix \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
     "build": "tsc",
-    "example": "cd example && npx vivliostyle build && node get-resolved-value.js"
+    "pretest": "npm run build",
+    "test": "node --test \"dist/**/*.test.js\""
   },
   "keywords": [],
   "author": "Koutaro Mukai",
