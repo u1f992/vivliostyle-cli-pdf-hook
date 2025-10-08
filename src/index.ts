@@ -1,7 +1,7 @@
 import * as playwright from "playwright-core-real";
 
 type TraceHook = (label: string, prop: string | symbol) => void | Promise<void>;
-type PdfBuffer = Awaited<ReturnType<playwright.Page["pdf"]>>;
+
 type LaunchBeforeHook = (params: {
   chromium: playwright.BrowserType;
   options?: Parameters<playwright.BrowserType["launch"]>[0];
@@ -10,6 +10,29 @@ type LaunchAfterHook = (params: {
   chromium: playwright.BrowserType;
   browser: playwright.Browser;
 }) => void | Promise<void>;
+
+type NewPageBeforeHook = (params: {
+  chromium: playwright.BrowserType;
+  browser: playwright.Browser;
+  options?: Parameters<playwright.Browser["newPage"]>[0];
+}) => void | Promise<void>;
+type NewPageAfterHook = (params: {
+  chromium: playwright.BrowserType;
+  browser: playwright.Browser;
+  page: playwright.Page;
+}) => void | Promise<void>;
+
+type NewContextBeforeHook = (params: {
+  chromium: playwright.BrowserType;
+  browser: playwright.Browser;
+  options?: Parameters<playwright.Browser["newContext"]>[0];
+}) => void | Promise<void>;
+type NewContextAfterHook = (params: {
+  chromium: playwright.BrowserType;
+  browser: playwright.Browser;
+  context: playwright.BrowserContext;
+}) => void | Promise<void>;
+
 type PdfBeforeHook = (params: {
   chromium: playwright.BrowserType;
   browser: playwright.Browser;
@@ -17,6 +40,7 @@ type PdfBeforeHook = (params: {
   page: playwright.Page;
   options?: Parameters<playwright.Page["pdf"]>[0];
 }) => void | Promise<void>;
+type PdfBuffer = Awaited<ReturnType<playwright.Page["pdf"]>>;
 type PdfAfterHook = (params: {
   chromium: playwright.BrowserType;
   browser: playwright.Browser;
@@ -28,11 +52,21 @@ type PdfAfterHook = (params: {
 export type Hooks = {
   trace: TraceHook;
   launch: { before: LaunchBeforeHook; after: LaunchAfterHook };
+  newPage: { before: NewPageBeforeHook; after: NewPageAfterHook };
+  newContext: { before: NewContextBeforeHook; after: NewContextAfterHook };
   pdf: { before: PdfBeforeHook; after: PdfAfterHook };
 };
 const globalHooks: Hooks = {
   trace() {},
   launch: {
+    before() {},
+    after() {},
+  },
+  newPage: {
+    before() {},
+    after() {},
+  },
+  newContext: {
     before() {},
     after() {},
   },
@@ -96,8 +130,21 @@ export const chromium = proxify(playwright.chromium, "chromium", {
       });
       return proxify(browser, "browser", {
         newPage: {
+          async before(browser, args) {
+            await globalHooks.newPage.before({
+              chromium,
+              browser,
+              options: args[0] as Parameters<playwright.Browser["newPage"]>[0],
+            });
+          },
           async after(browser, pagePromise) {
-            return proxify(await pagePromise, "page", {
+            const page = await pagePromise;
+            await globalHooks.newPage.after({
+              chromium,
+              browser,
+              page,
+            });
+            return proxify(page, "page", {
               pdf: {
                 async before(page, args) {
                   await globalHooks.pdf.before({
@@ -125,8 +172,23 @@ export const chromium = proxify(playwright.chromium, "chromium", {
           },
         },
         newContext: {
-          async after(_, contextPromise) {
-            return proxify(await contextPromise, "context", {});
+          async before(browser, args) {
+            await globalHooks.newContext.before({
+              chromium,
+              browser,
+              options: args[0] as Parameters<
+                playwright.Browser["newContext"]
+              >[0],
+            });
+          },
+          async after(browser, contextPromise) {
+            const context = await contextPromise;
+            await globalHooks.newContext.after({
+              chromium,
+              browser,
+              context,
+            });
+            return proxify(context, "context", {});
           },
         },
       });
