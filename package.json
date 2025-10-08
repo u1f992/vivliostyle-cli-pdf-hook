@@ -1,6 +1,6 @@
 {
   "name": "@u1f992/vivliostyle-cli-pdf-hook",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A proxy package for playwright-core, designed to provide hooks for PDF output processing in the Vivliostyle CLI.",
   "main": "dist/index.js",
   "scripts": {
