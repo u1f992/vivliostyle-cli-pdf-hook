@@ -2,6 +2,14 @@ import * as playwright from "playwright-core-real";
 
 type TraceHook = (label: string, prop: string | symbol) => void | Promise<void>;
 type PdfBuffer = Awaited<ReturnType<playwright.Page["pdf"]>>;
+type LaunchBeforeHook = (params: {
+  chromium: playwright.BrowserType;
+  options?: Parameters<playwright.BrowserType["launch"]>[0];
+}) => void | Promise<void>;
+type LaunchAfterHook = (params: {
+  chromium: playwright.BrowserType;
+  browser: playwright.Browser;
+}) => void | Promise<void>;
 type PdfBeforeHook = (params: {
   chromium: playwright.BrowserType;
   browser: playwright.Browser;
@@ -19,10 +27,15 @@ type PdfAfterHook = (params: {
 
 export type Hooks = {
   trace: TraceHook;
+  launch: { before: LaunchBeforeHook; after: LaunchAfterHook };
   pdf: { before: PdfBeforeHook; after: PdfAfterHook };
 };
 const globalHooks: Hooks = {
   trace() {},
+  launch: {
+    before() {},
+    after() {},
+  },
   pdf: {
     before() {},
     after() {},
@@ -69,8 +82,19 @@ function proxify<T extends object>(target: T, label: string, hooks: Hooks_<T>) {
 
 export const chromium = proxify(playwright.chromium, "chromium", {
   launch: {
+    async before(chromium, args) {
+      await globalHooks.launch.before({
+        chromium,
+        options: args[0] as Parameters<playwright.BrowserType["launch"]>[0],
+      });
+    },
     async after(chromium, browserPromise) {
-      return proxify(await browserPromise, "browser", {
+      const browser = await browserPromise;
+      await globalHooks.launch.after({
+        chromium,
+        browser,
+      });
+      return proxify(browser, "browser", {
         newPage: {
           async after(browser, pagePromise) {
             return proxify(await pagePromise, "page", {
