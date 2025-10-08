@@ -7,6 +7,7 @@ type PdfBeforeHook = (params: {
   browser: playwright.Browser;
   context: playwright.BrowserContext;
   page: playwright.Page;
+  options?: Parameters<playwright.Page["pdf"]>[0];
 }) => void | Promise<void>;
 type PdfAfterHook = (params: {
   chromium: playwright.BrowserType;
@@ -39,7 +40,7 @@ type MethodResult<T, K extends MethodKeys<T>> = ReturnType<
 >;
 type Hooks_<T> = Partial<{
   [K in MethodKeys<T>]: Partial<{
-    before: (target: T) => void | Promise<void>;
+    before: (target: T, args: unknown[]) => void | Promise<void>;
     after: (target: T, result: MethodResult<T, K>) => MethodResult<T, K>;
   }>;
 }>;
@@ -52,7 +53,7 @@ function proxify<T extends object>(target: T, label: string, hooks: Hooks_<T>) {
           hooks[prop as keyof typeof hooks]!;
         // @ts-expect-error allow any[]
         return async (...args) => {
-          await beforeHook?.(t);
+          await beforeHook?.(t, args);
           // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
           const result = (Reflect.get(t, prop, receiver) as Function).apply(
             t,
@@ -74,12 +75,13 @@ export const chromium = proxify(playwright.chromium, "chromium", {
           async after(browser, pagePromise) {
             return proxify(await pagePromise, "page", {
               pdf: {
-                async before(page) {
+                async before(page, args) {
                   await globalHooks.pdf.before({
                     chromium,
                     browser,
                     context: page.context(),
                     page,
+                    options: args[0] as Parameters<playwright.Page["pdf"]>[0],
                   });
                 },
                 async after(page, bufferPromise) {
