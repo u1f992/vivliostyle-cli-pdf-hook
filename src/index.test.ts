@@ -1,14 +1,19 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import { chromium, hooks } from "./index.js";
+import puppeteer, { hooks } from "./index.js";
+
+const defaultLaunchOptions = {
+  headless: true,
+  channel: "chrome" as const,
+};
 
 await test("launch hooks are called", async (ctx) => {
   const launchBefore = ctx.mock.method(hooks.launch, "before");
   const launchAfter = ctx.mock.method(hooks.launch, "after");
-  const launchOptions = { headless: true };
+  const launchOptions = { ...defaultLaunchOptions };
 
-  const browser = await chromium.launch(launchOptions);
+  const browser = await puppeteer.launch(launchOptions);
   try {
     await browser.newPage();
   } finally {
@@ -25,14 +30,13 @@ await test("launch hooks are called", async (ctx) => {
   assert.ok(afterCall);
 });
 
-await test("newPage hooks are called", async (ctx) => {
+await test("newPage hooks are called via browser.newPage()", async (ctx) => {
   const newPageBefore = ctx.mock.method(hooks.newPage, "before");
   const newPageAfter = ctx.mock.method(hooks.newPage, "after");
-  const newPageOptions = { viewport: { width: 1920, height: 1080 } };
 
-  const browser = await chromium.launch();
+  const browser = await puppeteer.launch(defaultLaunchOptions);
   try {
-    const page = await browser.newPage(newPageOptions);
+    const page = await browser.newPage();
     await page.close();
   } finally {
     await browser.close();
@@ -42,10 +46,32 @@ await test("newPage hooks are called", async (ctx) => {
   const beforeCall = newPageBefore.mock.calls[0];
   assert.ok(beforeCall);
   assert.ok(beforeCall.arguments[0]?.browser);
-  assert.deepStrictEqual(beforeCall.arguments[0]?.options?.viewport, {
-    width: 1920,
-    height: 1080,
-  });
+  assert.ok(beforeCall.arguments[0]?.context);
+
+  assert.strictEqual(newPageAfter.mock.callCount(), 1);
+  const afterCall = newPageAfter.mock.calls[0];
+  assert.ok(afterCall);
+});
+
+await test("newPage hooks are called via browserContext.newPage()", async (ctx) => {
+  const newPageBefore = ctx.mock.method(hooks.newPage, "before");
+  const newPageAfter = ctx.mock.method(hooks.newPage, "after");
+
+  const browser = await puppeteer.launch(defaultLaunchOptions);
+  try {
+    const [context] = browser.browserContexts();
+    assert.ok(context);
+    const page = await context.newPage();
+    await page.close();
+  } finally {
+    await browser.close();
+  }
+
+  assert.strictEqual(newPageBefore.mock.callCount(), 1);
+  const beforeCall = newPageBefore.mock.calls[0];
+  assert.ok(beforeCall);
+  assert.ok(beforeCall.arguments[0]?.browser);
+  assert.ok(beforeCall.arguments[0]?.context);
 
   assert.strictEqual(newPageAfter.mock.callCount(), 1);
   const afterCall = newPageAfter.mock.calls[0];
@@ -55,11 +81,10 @@ await test("newPage hooks are called", async (ctx) => {
 await test("newContext hooks are called", async (ctx) => {
   const newContextBefore = ctx.mock.method(hooks.newContext, "before");
   const newContextAfter = ctx.mock.method(hooks.newContext, "after");
-  const newContextOptions = { viewport: { width: 800, height: 600 } };
 
-  const browser = await chromium.launch();
+  const browser = await puppeteer.launch(defaultLaunchOptions);
   try {
-    const context = await browser.newContext(newContextOptions);
+    const context = await browser.createBrowserContext();
     await context.close();
   } finally {
     await browser.close();
@@ -69,10 +94,6 @@ await test("newContext hooks are called", async (ctx) => {
   const beforeCall = newContextBefore.mock.calls[0];
   assert.ok(beforeCall);
   assert.ok(beforeCall.arguments[0]?.browser);
-  assert.deepStrictEqual(beforeCall.arguments[0]?.options?.viewport, {
-    width: 800,
-    height: 600,
-  });
 
   assert.strictEqual(newContextAfter.mock.callCount(), 1);
   const afterCall = newContextAfter.mock.calls[0];
@@ -83,11 +104,11 @@ await test("pdf hooks are called", async (ctx) => {
   const pdfBefore = ctx.mock.method(hooks.pdf, "before");
   const pdfAfter = ctx.mock.method(hooks.pdf, "after");
   const pdfOptions = {
-    format: "A4",
+    format: "A4" as const,
     margin: { top: "10mm", bottom: "10mm" },
   };
 
-  const browser = await chromium.launch();
+  const browser = await puppeteer.launch(defaultLaunchOptions);
   try {
     const page = await browser.newPage();
     await page.pdf(pdfOptions);
@@ -107,4 +128,29 @@ await test("pdf hooks are called", async (ctx) => {
   assert.strictEqual(pdfAfter.mock.callCount(), 1);
   const afterCall = pdfAfter.mock.calls[0];
   assert.ok(afterCall);
+});
+
+await test("pdf hooks are called for pages from browserContexts().pages()", async (ctx) => {
+  const pdfBefore = ctx.mock.method(hooks.pdf, "before");
+  const pdfAfter = ctx.mock.method(hooks.pdf, "after");
+
+  const browser = await puppeteer.launch(defaultLaunchOptions);
+  try {
+    // Create a page first
+    await browser.newPage();
+
+    // Get pages via browserContexts().pages() - this is how Vivliostyle CLI does it
+    const [context] = browser.browserContexts();
+    assert.ok(context);
+    const pages = await context.pages();
+    const page = pages[0];
+    assert.ok(page);
+
+    await page.pdf();
+  } finally {
+    await browser.close();
+  }
+
+  assert.strictEqual(pdfBefore.mock.callCount(), 1);
+  assert.strictEqual(pdfAfter.mock.callCount(), 1);
 });

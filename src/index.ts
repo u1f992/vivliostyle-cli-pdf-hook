@@ -1,51 +1,56 @@
-import * as playwright from "playwright-core-real";
+import puppeteerReal from "puppeteer-core-real";
+import type { Browser, BrowserContext, Page } from "puppeteer-core-real";
+
+type Puppeteer = typeof puppeteerReal;
 
 type TraceHook = (label: string, prop: string | symbol) => void | Promise<void>;
 
 type LaunchBeforeHook = (params: {
-  chromium: playwright.BrowserType;
-  options?: Parameters<playwright.BrowserType["launch"]>[0];
+  puppeteer: Puppeteer;
+  options?: Parameters<Puppeteer["launch"]>[0];
 }) => void | Promise<void>;
 type LaunchAfterHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
+  puppeteer: Puppeteer;
+  browser: Browser;
 }) => void | Promise<void>;
 
 type NewPageBeforeHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
-  options?: Parameters<playwright.Browser["newPage"]>[0];
+  puppeteer: Puppeteer;
+  browser: Browser;
+  context: BrowserContext;
+  options?: Parameters<BrowserContext["newPage"]>[0];
 }) => void | Promise<void>;
 type NewPageAfterHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
-  page: playwright.Page;
+  puppeteer: Puppeteer;
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
 }) => void | Promise<void>;
 
 type NewContextBeforeHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
-  options?: Parameters<playwright.Browser["newContext"]>[0];
+  puppeteer: Puppeteer;
+  browser: Browser;
+  options?: Parameters<Browser["createBrowserContext"]>[0];
 }) => void | Promise<void>;
 type NewContextAfterHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
-  context: playwright.BrowserContext;
+  puppeteer: Puppeteer;
+  browser: Browser;
+  context: BrowserContext;
 }) => void | Promise<void>;
 
 type PdfBeforeHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
-  context: playwright.BrowserContext;
-  page: playwright.Page;
-  options?: Parameters<playwright.Page["pdf"]>[0];
+  puppeteer: Puppeteer;
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
+  options?: Parameters<Page["pdf"]>[0];
 }) => void | Promise<void>;
-type PdfBuffer = Awaited<ReturnType<playwright.Page["pdf"]>>;
+type PdfBuffer = Awaited<ReturnType<Page["pdf"]>>;
 type PdfAfterHook = (params: {
-  chromium: playwright.BrowserType;
-  browser: playwright.Browser;
-  context: playwright.BrowserContext;
-  page: playwright.Page;
+  puppeteer: Puppeteer;
+  browser: Browser;
+  context: BrowserContext;
+  page: Page;
   buffer: PdfBuffer;
 }) => PdfBuffer | Promise<PdfBuffer> | void | Promise<void>;
 
@@ -77,124 +82,128 @@ const globalHooks: Hooks = {
 };
 export const hooks = globalHooks;
 
-type MethodKeys<T> = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [K in keyof T]-?: T[K] extends (...args: any[]) => any ? K : never;
-}[keyof T];
-type MethodResult<T, K extends MethodKeys<T>> = ReturnType<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Extract<T[K], (...args: any[]) => any>
->;
-type Hooks_<T> = Partial<{
-  [K in MethodKeys<T>]: Partial<{
-    before: (target: T, args: unknown[]) => void | Promise<void>;
-    after: (target: T, result: MethodResult<T, K>) => MethodResult<T, K>;
-  }>;
-}>;
-function proxify<T extends object>(target: T, label: string, hooks: Hooks_<T>) {
+type MethodOverrides<T> = {
+  [K in keyof T]?: T[K];
+};
+
+function proxify<T extends object>(
+  target: T,
+  label: string,
+  overrides: MethodOverrides<T>,
+): T {
   return new Proxy(target, {
-    get(t, prop, receiver) {
+    get(t, prop) {
       globalHooks.trace(label, prop);
-      if (typeof prop === "string" && prop in hooks) {
-        const { before: beforeHook, after: afterHook } =
-          hooks[prop as keyof typeof hooks]!;
-        // @ts-expect-error allow any[]
-        return async (...args) => {
-          await beforeHook?.(t, args);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-          const result = (Reflect.get(t, prop, receiver) as Function).apply(
-            t,
-            args,
-          );
-          return afterHook ? afterHook(t, result) : result;
-        };
+      if (prop in overrides) {
+        return overrides[prop as keyof T];
       }
-      return Reflect.get(t, prop, receiver);
+      const value = Reflect.get(t, prop);
+      return typeof value === "function" ? value.bind(t) : value;
     },
   });
 }
 
-export const chromium = proxify(playwright.chromium, "chromium", {
-  launch: {
-    async before(chromium, args) {
-      await globalHooks.launch.before({
-        chromium,
-        options: args[0] as Parameters<playwright.BrowserType["launch"]>[0],
-      });
-    },
-    async after(chromium, browserPromise) {
-      const browser = await browserPromise;
-      await globalHooks.launch.after({
-        chromium,
+function createPageProxy(
+  puppeteer: Puppeteer,
+  browser: Browser,
+  context: BrowserContext,
+  page: Page,
+): Page {
+  return proxify(page, "page", {
+    pdf: async (options?: Parameters<Page["pdf"]>[0]) => {
+      await globalHooks.pdf.before({
+        puppeteer,
         browser,
+        context,
+        page,
+        options,
       });
-      return proxify(browser, "browser", {
-        newPage: {
-          async before(browser, args) {
-            await globalHooks.newPage.before({
-              chromium,
-              browser,
-              options: args[0] as Parameters<playwright.Browser["newPage"]>[0],
-            });
-          },
-          async after(browser, pagePromise) {
-            const page = await pagePromise;
-            await globalHooks.newPage.after({
-              chromium,
-              browser,
-              page,
-            });
-            return proxify(page, "page", {
-              pdf: {
-                async before(page, args) {
-                  await globalHooks.pdf.before({
-                    chromium,
-                    browser,
-                    context: page.context(),
-                    page,
-                    options: args[0] as Parameters<playwright.Page["pdf"]>[0],
-                  });
-                },
-                async after(page, bufferPromise) {
-                  const buffer = await bufferPromise;
-                  return (
-                    (await globalHooks.pdf.after({
-                      chromium,
-                      browser,
-                      context: page.context(),
-                      page,
-                      buffer,
-                    })) ?? buffer
-                  );
-                },
-              },
-            });
-          },
-        },
-        newContext: {
-          async before(browser, args) {
-            await globalHooks.newContext.before({
-              chromium,
-              browser,
-              options: args[0] as Parameters<
-                playwright.Browser["newContext"]
-              >[0],
-            });
-          },
-          async after(browser, contextPromise) {
-            const context = await contextPromise;
-            await globalHooks.newContext.after({
-              chromium,
-              browser,
-              context,
-            });
-            return proxify(context, "context", {});
-          },
-        },
-      });
+      const buffer = await page.pdf(options);
+      return (
+        (await globalHooks.pdf.after({
+          puppeteer,
+          browser,
+          context,
+          page,
+          buffer,
+        })) ?? buffer
+      );
     },
-  },
+  });
+}
+
+function createContextProxy(
+  puppeteer: Puppeteer,
+  browser: Browser,
+  context: BrowserContext,
+): BrowserContext {
+  return proxify(context, "context", {
+    newPage: async (options?: Parameters<BrowserContext["newPage"]>[0]) => {
+      await globalHooks.newPage.before({
+        puppeteer,
+        browser,
+        context,
+        options,
+      });
+      const page = await context.newPage();
+      await globalHooks.newPage.after({ puppeteer, browser, context, page });
+      return createPageProxy(puppeteer, browser, context, page);
+    },
+    pages: async () => {
+      const pages = await context.pages();
+      return pages.map((page) =>
+        createPageProxy(puppeteer, browser, context, page),
+      );
+    },
+  });
+}
+
+function createBrowserProxy(puppeteer: Puppeteer, browser: Browser): Browser {
+  return proxify(browser, "browser", {
+    newPage: async () => {
+      const defaultContext = browser.browserContexts()[0]!;
+      await globalHooks.newPage.before({
+        puppeteer,
+        browser,
+        context: defaultContext,
+      });
+      const page = await browser.newPage();
+      await globalHooks.newPage.after({
+        puppeteer,
+        browser,
+        context: defaultContext,
+        page,
+      });
+      return createPageProxy(puppeteer, browser, defaultContext, page);
+    },
+    createBrowserContext: async (
+      options?: Parameters<Browser["createBrowserContext"]>[0],
+    ) => {
+      await globalHooks.newContext.before({ puppeteer, browser, options });
+      const context = await browser.createBrowserContext(options);
+      await globalHooks.newContext.after({ puppeteer, browser, context });
+      return createContextProxy(puppeteer, browser, context);
+    },
+    browserContexts: () => {
+      const contexts = browser.browserContexts();
+      return contexts.map((context) =>
+        createContextProxy(puppeteer, browser, context),
+      );
+    },
+  });
+}
+
+const proxiedLaunch = async (options?: Parameters<Puppeteer["launch"]>[0]) => {
+  await globalHooks.launch.before({ puppeteer: puppeteerReal, options });
+  const browser = await puppeteerReal.launch(options);
+  await globalHooks.launch.after({ puppeteer: puppeteerReal, browser });
+  return createBrowserProxy(puppeteerReal, browser);
+};
+
+const puppeteerProxy = proxify(puppeteerReal, "puppeteer", {
+  launch: proxiedLaunch,
 });
 
-export { default } from "playwright-core-real";
-export * from "playwright-core-real";
+export default puppeteerProxy;
+export * from "puppeteer-core-real";
+export { proxiedLaunch as launch };

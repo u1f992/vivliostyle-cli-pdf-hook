@@ -3,7 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-import { hooks } from "playwright-core";
+import { hooks } from "puppeteer-core";
 
 hooks.pdf.before = async ({ page }) => {
   process.stdout.write("\n");
