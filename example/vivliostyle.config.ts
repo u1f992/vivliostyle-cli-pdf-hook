@@ -1,9 +1,8 @@
-// @ts-check
-
 import fs from "node:fs";
 import path from "node:path";
 
 import { hooks } from "puppeteer-core";
+import { defineConfig } from "@vivliostyle/cli";
 
 hooks.pdf.before = async ({ page }) => {
   process.stdout.write("\n");
@@ -21,11 +20,8 @@ hooks.pdf.before = async ({ page }) => {
   process.stdout.write(`resolved: ${textContent}\n`);
 };
 
-/** @type {import('@vivliostyle/cli').VivliostyleConfigSchema} */
-const vivliostyleConfig = {
+export default defineConfig({
   title: "example",
   theme: "./theme",
   entry: ["manuscript.md"],
-};
-
-export default vivliostyleConfig;
+});

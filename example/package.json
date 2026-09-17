@@ -6,6 +6,9 @@
     ]
   },
   "type": "module",
+  "scripts": {
+    "typecheck": "tsc --project ."
+  },
   "dependencies": {
     "@vivliostyle/cli": "11.3.3",
     "puppeteer-core": "file:.."

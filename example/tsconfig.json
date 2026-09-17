@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "lib": ["esnext", "dom"]
+  },
+  "include": ["vivliostyle.config.ts"]
+}
