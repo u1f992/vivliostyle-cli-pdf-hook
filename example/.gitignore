@@ -2,3 +2,4 @@ package-lock.json
 .vivliostyle
 example.pdf
 output.html
+output.cpuprofile
