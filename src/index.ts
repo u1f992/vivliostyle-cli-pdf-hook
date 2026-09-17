@@ -9,10 +9,7 @@ type LaunchBeforeHook = (params: {
   puppeteer: Puppeteer;
   options?: Parameters<Puppeteer["launch"]>[0];
 }) => void | Promise<void>;
-type LaunchAfterHook = (params: {
-  puppeteer: Puppeteer;
-  browser: Browser;
-}) => void | Promise<void>;
+type LaunchAfterHook = (params: { puppeteer: Puppeteer; browser: Browser }) => void | Promise<void>;
 
 type NewPageBeforeHook = (params: {
   puppeteer: Puppeteer;
@@ -86,14 +83,10 @@ type MethodOverrides<T> = {
   [K in keyof T]?: T[K];
 };
 
-function proxify<T extends object>(
-  target: T,
-  label: string,
-  overrides: MethodOverrides<T>,
-): T {
+function proxify<T extends object>(target: T, label: string, overrides: MethodOverrides<T>): T {
   return new Proxy(target, {
     get(t, prop) {
-      globalHooks.trace(label, prop);
+      void globalHooks.trace(label, prop);
       if (prop in overrides) {
         return overrides[prop as keyof T];
       }
@@ -151,9 +144,7 @@ function createContextProxy(
     },
     pages: async (includeAll?: Parameters<BrowserContext["pages"]>[0]) => {
       const pages = await context.pages(includeAll);
-      return pages.map((page) =>
-        createPageProxy(puppeteer, browser, context, page),
-      );
+      return pages.map((page) => createPageProxy(puppeteer, browser, context, page));
     },
   });
 }
@@ -177,9 +168,7 @@ function createBrowserProxy(puppeteer: Puppeteer, browser: Browser): Browser {
       });
       return createPageProxy(puppeteer, browser, defaultContext, page);
     },
-    createBrowserContext: async (
-      options?: Parameters<Browser["createBrowserContext"]>[0],
-    ) => {
+    createBrowserContext: async (options?: Parameters<Browser["createBrowserContext"]>[0]) => {
       await globalHooks.newContext.before({ puppeteer, browser, options });
       const context = await browser.createBrowserContext(options);
       await globalHooks.newContext.after({ puppeteer, browser, context });
@@ -187,9 +176,7 @@ function createBrowserProxy(puppeteer: Puppeteer, browser: Browser): Browser {
     },
     browserContexts: () => {
       const contexts = browser.browserContexts();
-      return contexts.map((context) =>
-        createContextProxy(puppeteer, browser, context),
-      );
+      return contexts.map((context) => createContextProxy(puppeteer, browser, context));
     },
   });
 }

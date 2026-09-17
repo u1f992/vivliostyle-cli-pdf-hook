@@ -169,13 +169,8 @@ await test("browser.newPage() forwards options to the real browser", async (ctx)
     const page = await browser.newPage(newPageOptions);
     await page.close();
 
-    assert.deepStrictEqual(realNewPage.mock.calls[0]?.arguments, [
-      newPageOptions,
-    ]);
-    assert.deepStrictEqual(
-      newPageBefore.mock.calls[0]?.arguments[0]?.options,
-      newPageOptions,
-    );
+    assert.deepStrictEqual(realNewPage.mock.calls[0]?.arguments, [newPageOptions]);
+    assert.deepStrictEqual(newPageBefore.mock.calls[0]?.arguments[0]?.options, newPageOptions);
   } finally {
     await browser.close();
   }
@@ -196,13 +191,8 @@ await test("browserContext.newPage() forwards options to the real context", asyn
     const page = await context.newPage(newPageOptions);
     await page.close();
 
-    assert.deepStrictEqual(realNewPage.mock.calls[0]?.arguments, [
-      newPageOptions,
-    ]);
-    assert.deepStrictEqual(
-      newPageBefore.mock.calls[0]?.arguments[0]?.options,
-      newPageOptions,
-    );
+    assert.deepStrictEqual(realNewPage.mock.calls[0]?.arguments, [newPageOptions]);
+    assert.deepStrictEqual(newPageBefore.mock.calls[0]?.arguments[0]?.options, newPageOptions);
     await context.close();
   } finally {
     await browser.close();
