@@ -1,6 +1,6 @@
 {
   "name": "@u1f992/vivliostyle-cli-pdf-hook",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "A proxy package for puppeteer-core, designed to provide hooks for PDF output processing in the Vivliostyle CLI.",
   "main": "dist/index.js",
   "scripts": {
