@@ -149,8 +149,8 @@ function createContextProxy(
       await globalHooks.newPage.after({ puppeteer, browser, context, page });
       return createPageProxy(puppeteer, browser, context, page);
     },
-    pages: async () => {
-      const pages = await context.pages();
+    pages: async (includeAll?: Parameters<BrowserContext["pages"]>[0]) => {
+      const pages = await context.pages(includeAll);
       return pages.map((page) =>
         createPageProxy(puppeteer, browser, context, page),
       );

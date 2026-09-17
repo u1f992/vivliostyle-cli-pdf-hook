@@ -154,3 +154,26 @@ await test("pdf hooks are called for pages from browserContexts().pages()", asyn
   assert.strictEqual(pdfBefore.mock.callCount(), 1);
   assert.strictEqual(pdfAfter.mock.callCount(), 1);
 });
+
+await test("browserContext.pages() forwards includeAll to the real context", async (ctx) => {
+  const newContextAfter = ctx.mock.method(hooks.newContext, "after");
+
+  const browser = await puppeteer.launch(defaultLaunchOptions);
+  try {
+    const context = await browser.createBrowserContext();
+    const realContext = newContextAfter.mock.calls[0]?.arguments[0]?.context;
+    assert.ok(realContext);
+    const realPages = ctx.mock.method(realContext, "pages");
+
+    await context.pages(true);
+    await context.pages();
+
+    assert.deepStrictEqual(
+      realPages.mock.calls.map((call) => call.arguments),
+      [[true], [undefined]],
+    );
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
