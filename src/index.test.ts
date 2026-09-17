@@ -155,6 +155,60 @@ await test("pdf hooks are called for pages from browserContexts().pages()", asyn
   assert.strictEqual(pdfAfter.mock.callCount(), 1);
 });
 
+await test("browser.newPage() forwards options to the real browser", async (ctx) => {
+  const launchAfter = ctx.mock.method(hooks.launch, "after");
+  const newPageBefore = ctx.mock.method(hooks.newPage, "before");
+  const newPageOptions = { type: "tab" as const, background: true };
+
+  const browser = await puppeteer.launch(defaultLaunchOptions);
+  try {
+    const realBrowser = launchAfter.mock.calls[0]?.arguments[0]?.browser;
+    assert.ok(realBrowser);
+    const realNewPage = ctx.mock.method(realBrowser, "newPage");
+
+    const page = await browser.newPage(newPageOptions);
+    await page.close();
+
+    assert.deepStrictEqual(realNewPage.mock.calls[0]?.arguments, [
+      newPageOptions,
+    ]);
+    assert.deepStrictEqual(
+      newPageBefore.mock.calls[0]?.arguments[0]?.options,
+      newPageOptions,
+    );
+  } finally {
+    await browser.close();
+  }
+});
+
+await test("browserContext.newPage() forwards options to the real context", async (ctx) => {
+  const newContextAfter = ctx.mock.method(hooks.newContext, "after");
+  const newPageBefore = ctx.mock.method(hooks.newPage, "before");
+  const newPageOptions = { type: "tab" as const, background: true };
+
+  const browser = await puppeteer.launch(defaultLaunchOptions);
+  try {
+    const context = await browser.createBrowserContext();
+    const realContext = newContextAfter.mock.calls[0]?.arguments[0]?.context;
+    assert.ok(realContext);
+    const realNewPage = ctx.mock.method(realContext, "newPage");
+
+    const page = await context.newPage(newPageOptions);
+    await page.close();
+
+    assert.deepStrictEqual(realNewPage.mock.calls[0]?.arguments, [
+      newPageOptions,
+    ]);
+    assert.deepStrictEqual(
+      newPageBefore.mock.calls[0]?.arguments[0]?.options,
+      newPageOptions,
+    );
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
+
 await test("browserContext.pages() forwards includeAll to the real context", async (ctx) => {
   const newContextAfter = ctx.mock.method(hooks.newContext, "after");
 

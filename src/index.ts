@@ -145,7 +145,7 @@ function createContextProxy(
         context,
         options,
       });
-      const page = await context.newPage();
+      const page = await context.newPage(options);
       await globalHooks.newPage.after({ puppeteer, browser, context, page });
       return createPageProxy(puppeteer, browser, context, page);
     },
@@ -160,14 +160,15 @@ function createContextProxy(
 
 function createBrowserProxy(puppeteer: Puppeteer, browser: Browser): Browser {
   return proxify(browser, "browser", {
-    newPage: async () => {
+    newPage: async (options?: Parameters<Browser["newPage"]>[0]) => {
       const defaultContext = browser.browserContexts()[0]!;
       await globalHooks.newPage.before({
         puppeteer,
         browser,
         context: defaultContext,
+        options,
       });
-      const page = await browser.newPage();
+      const page = await browser.newPage(options);
       await globalHooks.newPage.after({
         puppeteer,
         browser,
