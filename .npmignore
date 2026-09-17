@@ -1,7 +1,7 @@
 .github
 example
 src
-dist/**/*.test.*
+tests
 oxfmt.config.ts
 oxlint.config.ts
 tsconfig.json

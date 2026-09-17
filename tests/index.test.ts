@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import test from "node:test";
 
-import puppeteer, { hooks } from "./index.js";
+import puppeteer, { hooks } from "../src/index.ts";
 
 const defaultLaunchOptions = {
   headless: true,

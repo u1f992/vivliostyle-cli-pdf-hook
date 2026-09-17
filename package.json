@@ -4,11 +4,10 @@
   "description": "A proxy package for puppeteer-core, designed to provide hooks for PDF output processing in the Vivliostyle CLI.",
   "main": "dist/index.js",
   "scripts": {
-    "lint": "tsc --project tsconfig.tools.json && oxlint --fix src",
-    "format": "tsc --project tsconfig.tools.json && oxfmt src",
+    "lint": "tsc --project tsconfig.tools.json && oxlint --fix src tests",
+    "format": "tsc --project tsconfig.tools.json && oxfmt src tests",
     "build": "tsc",
-    "pretest": "npm run build",
-    "test": "node --test \"dist/**/*.test.js\"",
+    "test": "tsc --project tests && node --test \"tests/**/*.test.ts\"",
     "example": "cd example && npx vivliostyle build"
   },
   "keywords": [],
