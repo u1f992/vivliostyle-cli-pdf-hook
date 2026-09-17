@@ -7,4 +7,3 @@ oxlint.config.ts
 tsconfig.json
 tsconfig.tools.json
 *.tgz
-developer-notes.md
