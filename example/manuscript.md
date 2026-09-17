@@ -1,7 +1,7 @@
 <a href="#foobar" data-pseudo-id="665ca512-9bd5-49c8-8431-a96fb88cd62b"></a><!--
-Vivliostyleに処理されたあとで検索できるID値が必要
-id属性やhref属性は、文書全体で通るように処理の過程で置き換えられることがある
-data-*属性なら、Vivliostyleの内部処理で使う命名と衝突していなければ保持されるようだ
+An ID value that can still be looked up after Vivliostyle has processed the document is needed.
+The id and href attributes may be rewritten during processing so that they stay unique across the whole document.
+A data-* attribute seems to be preserved as long as it does not collide with the names Vivliostyle uses internally.
 -->
 
 <div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div style="break-after: page"></div><div id="foobar">foobar</div>

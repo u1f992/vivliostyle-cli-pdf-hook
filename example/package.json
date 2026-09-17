@@ -1,4 +1,10 @@
 {
+  "//": {
+    "$.dependencies['puppeteer-core']": [
+      "In actual use, specify it as follows:",
+      "\"puppeteer-core\": \"npm:@u1f992/vivliostyle-cli-pdf-hook@x.y.z\""
+    ]
+  },
   "type": "module",
   "dependencies": {
     "@vivliostyle/cli": "11.3.3",
